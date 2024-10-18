@@ -6,6 +6,18 @@
 \usage{
 create.forest.SCIP(X, method, ...)
 }
+\arguments{
+\item{X}{data.frame for knockoffs}
+
+\item{method}{`c("normal","permute")` The method of generating new numeric data given its conditional expectation.
+"normal": Gaussian distribution with mean 0 and std from the residuals of `X` around the predicted values
+"permute": Permutes the residuals of `X` around the predicted values}
+
+\item{...}{Other values passed to `ranger::ranger`}
+}
+\value{
+A knockoff data.frame with the same size, column names, and column types as `X`
+}
 \description{
-Knockoffs with SCIP
+Computes the Sequential Conditional Independent Pairs knockoffs using random forests
 }

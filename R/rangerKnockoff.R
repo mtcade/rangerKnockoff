@@ -2,7 +2,7 @@
 #'
 #' @description Computes the conditional expectations of numeric variables and probabilities for categorical variables using `ranger` random forests, and then uses `knockoff` for the numeric conditional residuals.
 #'
-#' @param X data.frame requiring knockoffs
+#' @param X data.frame for knockoffs
 #' @param method `c("second_order","fixed","none")`
 #' Procedure for creating numeric conditional residuals.
 #' Ignored if `residuals_function` is provided.
@@ -206,7 +206,7 @@ create.forest.conditional_residuals <- function(
 #'
 #' @description Computes the Sequential Conditional Independent Pairs knockoffs using random forests
 #'
-#' @param X
+#' @param X data.frame for knockoffs
 #' @param method `c("normal","permute")` The method of generating new numeric data given its conditional expectation.
 #'  "normal": Gaussian distribution with mean 0 and std from the residuals of `X` around the predicted values
 #'  "permute": Permutes the residuals of `X` around the predicted values
