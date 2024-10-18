@@ -1,5 +1,28 @@
 #' Knockoffs with conditional residuals
 #'
+#' @param X data.frame requiring knockoffs
+#' @param method `c("second_order","fixed","none")`
+#' Procedure for creating numeric conditional residuals.
+#' Ignored if `residuals_function` is provided.
+#'  "second_order": Gaussian second order knockoffs; see `knockoff::create.second_order`
+#'  "fixed": Fixed knockoffs; see `knockoff:create.fixed`
+#'  "none": Only calculate conditional expectations. Useful for creating knockoffs with other software.
+#' @param residuals_method `c("asdp","equi","sdp")`
+#' Procedure for `method` of `"second_order"` or `"fixed"` when calculating covariance.
+#' Default is "asdp" for `method = "second_order"`, "sdp" for `method = "fixed"`
+#'  "asdp": See `knockoff::create_asdp`
+#'  "equi": See `knockoff::create_equi`
+#'  "sdp": See `knockoff::create_sdp`
+#' @param residuals_function If provided, uses any custom function to create numeric residuals.
+#'  Must take an arbitrary sized numeric data.frame as an input, and return a numeric data.frame of the same size.
+#' @param sigma Optional covariance when `method = "fixed"`
+#'  See `knockoff::create_fixed`
+#' @param randomize Optional bool when `method = "fixed"`
+#'  See `knockoff::create_fixed`
+#' @param shrink Optional bool when `method = "fixed"`
+#'  See `knockoff::create_fixed`
+#' @param ... Other values passed to `ranger::ranger`
+#' @return A knockoff data.frame with the same size, column names, and column types as `X`
 #' @export
 create.forest.conditionalResiduals <- function(
   X, # n-by-p matrix of original variables
@@ -344,58 +367,4 @@ categoryChooser <- function( X ){
   )
 
   return( choices )
-}
-
-# -- Tests
-
-clean_dataFrame <- function( X ){
-  # clean the header
-  colnames( X ) <- trimws( colnames(X), whitespace='"'  )
-
-  # Clean the string values
-  for ( .col in colnames(X) ){
-    if ( class(X[,.col]) == "factor" ){
-      X[,.col] <- trimws( X[,.col], whitespace = '"' )
-    }
-    if ( class(X[,.col]) == "character" ){
-      X[,.col] <- as.factor( X[,.col] )
-    }
-  }
-  return( X )
-}
-
-if ( F ){
-  FILE_NAME <- "/Users/evanmason/Documents/UCR/research/data/local_playground/2023-11-13/latent_mixture_mixed_0.csv"
-
-  # Changing the quote character guarantees reading the quoted values as strings
-  dataFrame <- read.table(
-    FILE_NAME, header = TRUE, check.names = FALSE, sep = ',', quote = "'", stringsAsFactors = TRUE
-  )
-
-  dataFrame_cleaned <- clean_dataFrame( dataFrame )
-
-  dataFrame.X <- dataFrame_cleaned[,2:ncol(dataFrame)]
-  head( dataFrame.X )
-
-  Xk = create.forest.conditionalResiduals( X = dataFrame.X )
-  head( Xk )
-}
-
-if ( F ){
-  FILE_NAME <- "/Users/evanmason/Documents/UCR/research/data/local_playground/2023-11-13/latent_mixture_mixed_0.csv"
-
-  # Changing the quote character guarantees reading the quoted values as strings
-  dataFrame <- read.table(
-    FILE_NAME,
-    header = TRUE,
-    check.names = FALSE, sep = ',', quote = "'", stringsAsFactors = TRUE
-  )
-
-  dataFrame_cleaned <- clean_dataFrame( dataFrame )
-
-  dataFrame.X <- dataFrame_cleaned[,2:ncol(dataFrame)]
-  head( dataFrame.X )
-
-  Xk = create.forest.SCIP( X = dataFrame.X )
-  head( Xk )
 }
