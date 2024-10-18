@@ -11,3 +11,4 @@ LazyData: true
 Imports:
     knockoff,
     ranger
+RoxygenNote: 7.3.2
