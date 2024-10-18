@@ -18,25 +18,21 @@
 #' @param residuals_function If provided, uses any custom function to create numeric residuals.
 #'  Must take an arbitrary sized numeric data.frame as an input, and return a numeric data.frame of the same size.
 #' @param sigma Optional covariance when `method = "fixed"`
-#'  See `knockoff::create_fixed`
+#'  See `knockoff::create.fixed`
 #' @param randomize Optional bool when `method = "fixed"`
-#'  See `knockoff::create_fixed`
-#' @param shrink Optional bool when `method = "fixed"`
-#'  See `knockoff::create_fixed`
+#'  See `knockoff::create.fixed`
+#' @param shrink Optional bool when `method = "second_order"`
+#'  See `knockoff::create.second_order`
 #' @param ... Other values passed to `ranger::ranger`
 #'
 #' @return A knockoff data.frame with the same size, column names, and column types as `X`
 #'
 #' @export
 create.forest.conditional_residuals <- function(
-  X, # n-by-p matrix of original variables
-  method = "second_order", # How to create numeric conditional residual knockoffs
-  # "second_order", "fixed": from `knockoff` package
-  # "none": Only conditional expectations for numeric, still pick categories
-  #   Used mostly for exporting to python for more sophisticated methods
+  X,
+  method = "second_order",
   residuals_method = NULL, # c("asdp","equi","sdp")
-  residuals_function = NULL, # Custom function to turn a dattable of residuals into knockoff residuals
-  #   `method` and `residuals_method` are ignored if this is non null
+  residuals_function = NULL,
   sigma = NULL, # For method = "fixed"
   randomize = F, # For method = "fixed"
   shrink = F, # For method = "second_order"
@@ -215,8 +211,8 @@ create.forest.conditional_residuals <- function(
 #' @returns A knockoff data.frame with the same size, column names, and column types as `X`
 #' @export
 create.forest.SCIP <- function(
-  X, # n-by-p matrix of original variables
-  method, # "normal","permute",
+  X,
+  method,
   ... # inputs for ranger
 ){
   # -- Wrangle inputs
