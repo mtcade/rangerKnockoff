@@ -28,7 +28,7 @@
 #' @return A knockoff data.frame with the same size, column names, and column types as `X`
 #'
 #' @export
-create.forest.conditionalResiduals <- function(
+create.forest.conditional_residuals <- function(
   X, # n-by-p matrix of original variables
   method = "second_order", # How to create numeric conditional residual knockoffs
   # "second_order", "fixed": from `knockoff` package
