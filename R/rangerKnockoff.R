@@ -1,5 +1,7 @@
 #' Knockoffs with conditional residuals
 #'
+#' @description Computes the conditional expectations of numeric variables and probabilities for categorical variables using `ranger` random forests, and then uses `knockoff` for the numeric conditional residuals.
+#'
 #' @param X data.frame requiring knockoffs
 #' @param method `c("second_order","fixed","none")`
 #' Procedure for creating numeric conditional residuals.
@@ -22,7 +24,9 @@
 #' @param shrink Optional bool when `method = "fixed"`
 #'  See `knockoff::create_fixed`
 #' @param ... Other values passed to `ranger::ranger`
+#'
 #' @return A knockoff data.frame with the same size, column names, and column types as `X`
+#'
 #' @export
 create.forest.conditionalResiduals <- function(
   X, # n-by-p matrix of original variables
@@ -200,6 +204,15 @@ create.forest.conditionalResiduals <- function(
 
 #' Knockoffs with SCIP
 #'
+#' @description Computes the Sequential Conditional Independent Pairs knockoffs using random forests
+#'
+#' @param X
+#' @param method `c("normal","permute")` The method of generating new numeric data given its conditional expectation.
+#'  "normal": Gaussian distribution with mean 0 and std from the residuals of `X` around the predicted values
+#'  "permute": Permutes the residuals of `X` around the predicted values
+#' @param ... Other values passed to `ranger::ranger`
+#'
+#' @returns A knockoff data.frame with the same size, column names, and column types as `X`
 #' @export
 create.forest.SCIP <- function(
   X, # n-by-p matrix of original variables
