@@ -53,7 +53,15 @@ A knockoff data.frame with the same size, column names, and column types as `X`
 Computes the conditional expectations of numeric variables and probabilities for categorical variables using `ranger` random forests, and then uses `knockoff` for the numeric conditional residuals.
 }
 \examples{
-create.forest.conditional_residuals( X_0, method = "second_order", residuals_method = "equi" )
-create.forest.conditional_residuals( X_0, method = "none" )
+create.forest.conditional_residuals(
+  X,
+  method = "second_order",
+  residuals_method = "equi"
+ )
+create.forest.conditional_residuals(
+  X,
+  method = "none",
+  num.trees = 1024
+ )
 
 }

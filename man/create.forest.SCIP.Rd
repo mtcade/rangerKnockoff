@@ -22,7 +22,7 @@ A knockoff data.frame with the same size, column names, and column types as `X`
 Computes the Sequential Conditional Independent Pairs knockoffs using random forests
 }
 \examples{
-create.forest.SCIP( X_0 )
-create.forest.SCIP( X_0, method = "permute" )
+create.forest.SCIP( X )
+create.forest.SCIP( X, method = "permute" )
 
 }

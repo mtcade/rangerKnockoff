@@ -2,10 +2,10 @@ Package: rangerKnockoff
 Type: Package
 Title: Knockoffs with Random Forests
 Version: 0.1.0
-Author: person("Evan","Mason", email = "emaso007@ucr.edu", role=c("aut","cre"))
+Authors@R: person("Evan","Mason", email = "emaso007@ucr.edu", role=c("aut","cre"))
 Description: Creates knockoffs with SCIP (Sequential Conditional Independent Pairs) or Conditional Residuals using random forests with 'ranger'.
 URL: https://github.com/emason-ucr/rangerKnockoff
-License: `use_gpl3_license()`
+License: GPL-3 + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:

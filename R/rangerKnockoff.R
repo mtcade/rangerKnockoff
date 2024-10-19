@@ -28,8 +28,16 @@
 #' @return A knockoff data.frame with the same size, column names, and column types as `X`
 #'
 #' @examples
-#' create.forest.conditional_residuals( X_0, method = "second_order", residuals_method = "equi" )
-#' create.forest.conditional_residuals( X_0, method = "none" )
+#' create.forest.conditional_residuals(
+#'   X,
+#'   method = "second_order",
+#'   residuals_method = "equi"
+#'  )
+#' create.forest.conditional_residuals(
+#'   X,
+#'   method = "none",
+#'   num.trees = 1024
+#'  )
 #'
 #' @export
 create.forest.conditional_residuals <- function(
@@ -215,8 +223,8 @@ create.forest.conditional_residuals <- function(
 #' @returns A knockoff data.frame with the same size, column names, and column types as `X`
 #'
 #' @examples
-#' create.forest.SCIP( X_0 )
-#' create.forest.SCIP( X_0, method = "permute" )
+#' create.forest.SCIP( X )
+#' create.forest.SCIP( X, method = "permute" )
 #'
 #' @export
 create.forest.SCIP <- function(
@@ -267,6 +275,11 @@ create.forest.SCIP <- function(
 
 # -- Helper Functions
 
+#' @param X Original data
+#' @param dependent.variable.name The column to be predicted from all others in `X`
+#' @param ... Other values passed to [ranger::ranger]
+#' @returns New column of knockoffs like `dependent.variable.name`
+#' @noRd
 get.forestPredictions <- function(
     X, # n-by-p
     dependent.variable.name, # int
@@ -293,6 +306,14 @@ get.forestPredictions <- function(
   return( predictions )
 }
 
+#' @param X Original data
+#' @param column Index to predict using all other columns of `X`,
+#'  and all previous columns of `Xk` if present
+#' @param method How to create new residuals; "normal" or "permute"
+#' @param Xk Previous knockoff data used to make subsequent SCIP knockoffs
+#' @param ... Other values passed to [ranger::ranger]
+#' @returns New column of knockoffs for the `column` data
+#' @noRd
 get.forestPredictions.forColumn <- function(
   X, # n by p data frame
   column, # int; index
@@ -322,7 +343,7 @@ get.forestPredictions.forColumn <- function(
     X.all <- cbind( X, Xk.temp )
   }
 
-  if ( class(X[[ column ]]) == "numeric" ){
+  if ( inherits( X[[ column ]], "numeric" ) ){
     forest <- ranger::ranger(
       x = X.all[1:n, -column],
       y = X.all[1:n, column],
@@ -341,12 +362,12 @@ get.forestPredictions.forColumn <- function(
     } else if ( method == "permute" ){
       residuals.Xk.j <- sample( residuals )
     } else {
-      stop( paste( "Unrecognized residuals_method:", residuals_method ) )
+      stop( paste( "Unrecognized method:", method ) )
     }
 
     Xk.j <- forest$predictions + residuals.Xk.j
   }
-  else if ( class(X[[ column ]]) == "factor" ){
+  else if ( inherits(X[[ column ]], "factor" ) ){
     forest <- ranger::ranger(
       x = X.all[1:n, -column],
       y = X.all[1:n, column],
@@ -369,7 +390,9 @@ get.forestPredictions.forColumn <- function(
 
   return( Xk.j )
 }
-
+#' @param X A matrix of probabilities, so that each row adds up to 1
+#' @returns A column of matrix indices in `1:dim(X)[2]`, of length `dim(X)[1]`
+#' @noRd
 categoryChooser <- function( X ){
   # For a matrix X, choose from the number of columns with the rowwise
   #   probabilities. One chosen for each row as a column integer.
