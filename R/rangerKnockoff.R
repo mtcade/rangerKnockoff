@@ -6,26 +6,30 @@
 #' @param method `c("second_order","fixed","none")`
 #' Procedure for creating numeric conditional residuals.
 #' Ignored if `residuals_function` is provided.
-#'  "second_order": Gaussian second order knockoffs; see `knockoff::create.second_order`
-#'  "fixed": Fixed knockoffs; see `knockoff:create.fixed`
+#'  "second_order": Gaussian second order knockoffs; see [knockoff::create.second_order]
+#'  "fixed": Fixed knockoffs; see [knockoff:create.fixed]
 #'  "none": Only calculate conditional expectations. Useful for creating knockoffs with other software.
 #' @param residuals_method `c("asdp","equi","sdp")`
 #' Procedure for `method` of `"second_order"` or `"fixed"` when calculating covariance.
 #' Default is "asdp" for `method = "second_order"`, "sdp" for `method = "fixed"`
-#'  "asdp": See `knockoff::create_asdp`
-#'  "equi": See `knockoff::create_equi`
-#'  "sdp": See `knockoff::create_sdp`
+#'  "asdp": See [knockoff::create_asdp]
+#'  "equi": See [knockoff::create_equi]
+#'  "sdp": See [knockoff::create_sdp]
 #' @param residuals_function If provided, uses any custom function to create numeric residuals.
 #'  Must take an arbitrary sized numeric data.frame as an input, and return a numeric data.frame of the same size.
 #' @param sigma Optional covariance when `method = "fixed"`
-#'  See `knockoff::create.fixed`
+#'  See [knockoff::create.fixed]
 #' @param randomize Optional bool when `method = "fixed"`
-#'  See `knockoff::create.fixed`
+#'  See [knockoff::create.fixed]
 #' @param shrink Optional bool when `method = "second_order"`
-#'  See `knockoff::create.second_order`
-#' @param ... Other values passed to `ranger::ranger`
+#'  See [knockoff::create.second_order]
+#' @param ... Other values passed to [ranger::ranger]
 #'
 #' @return A knockoff data.frame with the same size, column names, and column types as `X`
+#'
+#' @examples
+#' create.forest.conditional_residuals( X_0, method = "second_order", residuals_method = "equi" )
+#' create.forest.conditional_residuals( X_0, method = "none" )
 #'
 #' @export
 create.forest.conditional_residuals <- function(
@@ -206,9 +210,14 @@ create.forest.conditional_residuals <- function(
 #' @param method `c("normal","permute")` The method of generating new numeric data given its conditional expectation.
 #'  "normal": Gaussian distribution with mean 0 and std from the residuals of `X` around the predicted values
 #'  "permute": Permutes the residuals of `X` around the predicted values
-#' @param ... Other values passed to `ranger::ranger`
+#' @param ... Other values passed to [ranger::ranger]
 #'
 #' @returns A knockoff data.frame with the same size, column names, and column types as `X`
+#'
+#' @examples
+#' create.forest.SCIP( X_0 )
+#' create.forest.SCIP( X_0, method = "permute" )
+#'
 #' @export
 create.forest.SCIP <- function(
   X,
