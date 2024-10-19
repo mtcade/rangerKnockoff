@@ -63,11 +63,11 @@ create.forest.conditional_residuals <- function(
   forestPredictions <- lapply(
     1:p,
     FUN = function( j ) do.call(
-      get.forestPredictions,
+      get.forestPredictions.forColumn,
       c(
         list(
           X = X,
-          dependent.variable.name = X.names[[ j ]]
+          column = j
         ),
         vargs
       )
@@ -84,7 +84,7 @@ create.forest.conditional_residuals <- function(
     X = forestPredictions[
       X.classes == "factor"
     ],
-    FUN = function(x) categoryChooser( x )
+    FUN = function(x) choose.categories( x )
   ) # list[ vector[integer] ]
 
   # Make the numeric data predictions into a matrix,
@@ -246,7 +246,7 @@ create.forest.SCIP <- function(
   X.names <- names(X)
 
   Xk <- do.call(
-    get.forestPredictions.forColumn,
+    get.forestSCIP.forColumn,
     c(
       list( X = X, column = 1, method = method, Xk = NULL),
       vargs
@@ -257,7 +257,7 @@ create.forest.SCIP <- function(
 
   for ( j in 2:dim(X)[2] ){
     Xk.j <- do.call(
-      get.forestPredictions.forColumn,
+      get.forestSCIP.forColumn,
       c(
         list( X = X, column = j, method = method, Xk = Xk),
         vargs
@@ -275,29 +275,34 @@ create.forest.SCIP <- function(
 
 # -- Helper Functions
 
+#' Conditional Residuals forest helper function
+#'
+#' @description Uses random forests to get the probabilities or conditional
+#' expectations for one column of data as a function of the others
+#'
 #' @param X Original data
-#' @param dependent.variable.name The column to be predicted from all others in `X`
+#' @param column The column index to be predicted from all others in `X`
 #' @param ... Other values passed to [ranger::ranger]
+#'
 #' @returns New column of knockoffs like `dependent.variable.name`
+#'
 #' @noRd
-get.forestPredictions <- function(
+get.forestPredictions.forColumn <- function(
     X, # n-by-p
-    dependent.variable.name, # int
+    column, # int
     ... # ranger options; do not use 'probability' or 'dependent.variable.name'
 ){
-  X.class <- class( X[[ dependent.variable.name ]] )
-
-  if ( X.class == "numeric" ){
+  if ( inherits( X[[j]], "numeric" ) ){
     probability <- F
-  } else if ( X.class == "factor" ){
+  } else if ( inherits( X[[j]], "factor" ) ){
     probability <- T
   } else {
-    stop(paste("Unrecognized class( X[[ dependent.variable.name ]] ):", X.class))
+    stop(paste("Unrecognized class( X[[",j,"]] ):", class(X[[j]]) ))
   }
 
   forest <- ranger::ranger(
     data = X,
-    dependent.variable.name = dependent.variable.name,
+    dependent.variable.name = colnames(X)[j],
     probability = probability,
     ...
   )
@@ -306,15 +311,21 @@ get.forestPredictions <- function(
   return( predictions )
 }
 
+#' SCIP Forest predictions helper function
+#'
+#' @description Create the column of knockoffs for SCIP
+#'
 #' @param X Original data
 #' @param column Index to predict using all other columns of `X`,
 #'  and all previous columns of `Xk` if present
 #' @param method How to create new residuals; "normal" or "permute"
 #' @param Xk Previous knockoff data used to make subsequent SCIP knockoffs
 #' @param ... Other values passed to [ranger::ranger]
+#'
 #' @returns New column of knockoffs for the `column` data
+#'
 #' @noRd
-get.forestPredictions.forColumn <- function(
+get.forestSCIP.forColumn <- function(
   X, # n by p data frame
   column, # int; index
   method = "normal", # "normal", "permute"
@@ -376,7 +387,7 @@ get.forestPredictions.forColumn <- function(
     )
 
     Xk.j <- as.factor(
-      categoryChooser( forest$predictions )
+      choose.categories( forest$predictions )
     )
     levels( Xk.j ) <- levels( X[[ column ]] )
   }
@@ -390,10 +401,17 @@ get.forestPredictions.forColumn <- function(
 
   return( Xk.j )
 }
+
+#' Category chooser helper function
+#'
+#' @description Chooses indices from a matrix of probability rows
+#'
 #' @param X A matrix of probabilities, so that each row adds up to 1
+#'
 #' @returns A column of matrix indices in `1:dim(X)[2]`, of length `dim(X)[1]`
+#'
 #' @noRd
-categoryChooser <- function( X ){
+choose.categories <- function( X ){
   # For a matrix X, choose from the number of columns with the rowwise
   #   probabilities. One chosen for each row as a column integer.
   # HINT: use the column integer to choose the appropriate factor level
