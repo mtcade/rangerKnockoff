@@ -36,7 +36,7 @@
 #' create.forest.conditional_residuals(
 #'   X,
 #'   method = "none",
-#'   num.trees = 1024
+#'   num.trees = 256
 #'  )
 #'
 #' @export
@@ -286,23 +286,24 @@ create.forest.SCIP <- function(
 #'
 #' @returns New column of knockoffs like `dependent.variable.name`
 #'
+#' @keywords internal
 #' @noRd
 get.forestPredictions.forColumn <- function(
     X, # n-by-p
     column, # int
     ... # ranger options; do not use 'probability' or 'dependent.variable.name'
 ){
-  if ( inherits( X[[j]], "numeric" ) ){
+  if ( inherits( X[[ column ]], "numeric" ) ){
     probability <- F
-  } else if ( inherits( X[[j]], "factor" ) ){
+  } else if ( inherits( X[[ column ]], "factor" ) ){
     probability <- T
   } else {
-    stop(paste("Unrecognized class( X[[",j,"]] ):", class(X[[j]]) ))
+    stop(paste("Unrecognized class( X[[",column,"]] ):", class(X[[column]]) ))
   }
 
   forest <- ranger::ranger(
     data = X,
-    dependent.variable.name = colnames(X)[j],
+    dependent.variable.name = colnames(X)[column],
     probability = probability,
     ...
   )
@@ -324,6 +325,7 @@ get.forestPredictions.forColumn <- function(
 #'
 #' @returns New column of knockoffs for the `column` data
 #'
+#' @keywords internal
 #' @noRd
 get.forestSCIP.forColumn <- function(
   X, # n by p data frame
@@ -410,6 +412,7 @@ get.forestSCIP.forColumn <- function(
 #'
 #' @returns A column of matrix indices in `1:dim(X)[2]`, of length `dim(X)[1]`
 #'
+#' @keywords internal
 #' @noRd
 choose.categories <- function( X ){
   # For a matrix X, choose from the number of columns with the rowwise
