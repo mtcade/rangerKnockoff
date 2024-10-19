@@ -212,7 +212,7 @@ create.forest.conditional_residuals <- function(
 #' @export
 create.forest.SCIP <- function(
   X,
-  method,
+  method = "normal",
   ... # inputs for ranger
 ){
   # -- Wrangle inputs
