@@ -2,7 +2,7 @@
 #'
 #' @description Computes the conditional expectations of numeric variables and probabilities for categorical variables using `ranger` random forests, and then uses `knockoff` for the numeric conditional residuals.
 #'
-#' @param X data.frame for knockoffs
+#' @param X n-by-p data.frame of original variables for knockoffs
 #' @param method `c("second_order","fixed","none")`
 #' Procedure for creating numeric conditional residuals.
 #' Ignored if `residuals_function` is provided.
@@ -344,22 +344,22 @@ get.forestSCIP.forColumn <- function(
 
   if ( column == 1 ){
     # No Xk at all
-    X.all <- X
+    X.all <- X[,-column]
   }
   else if ( column == 2 ){
     # Xk will be a vector, not a dataframe
-    X.all <- cbind( X, Xk )
+    X.all <- cbind( X[,-column], Xk )
   }
   else {
     # Xk is a data frame
-    Xk.temp <- Xk[ 1:n, 1:(column-1) ]
-    X.all <- cbind( X, Xk.temp )
+    Xk.temp <- Xk[, 1:(column-1) ]
+    X.all <- cbind( X[,-column], Xk.temp )
   }
 
   if ( inherits( X[[ column ]], "numeric" ) ){
     forest <- ranger::ranger(
-      x = X.all[1:n, -column],
-      y = X.all[1:n, column],
+      x = X.all,
+      y = X[[column]],
       probability = F,
       ...
     )
@@ -382,8 +382,8 @@ get.forestSCIP.forColumn <- function(
   }
   else if ( inherits(X[[ column ]], "factor" ) ){
     forest <- ranger::ranger(
-      x = X.all[1:n, -column],
-      y = X.all[1:n, column],
+      x = X.all,
+      y = X[[ column ]],
       probability = T,
       ...
     )
