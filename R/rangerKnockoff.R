@@ -229,7 +229,7 @@ create.forest.conditional_residuals <- function(
 #' @export
 create.forest.SCIP <- function(
   X,
-  method = "normal",
+  method = "normal", # "normal", "permute"
   ... # inputs for ranger
 ){
   # -- Wrangle inputs
@@ -245,7 +245,9 @@ create.forest.SCIP <- function(
   p = ncol(X) # int
   X.names <- names(X)
 
-  Xk <- do.call(
+  Xk <- X
+
+  Xk[[1]] <- do.call(
     get.forestSCIP.forColumn,
     c(
       list( X = X, column = 1, method = method, Xk = NULL),
@@ -253,22 +255,24 @@ create.forest.SCIP <- function(
     )
   )
 
-  stopifnot( dim(Xk) > 1 )
-
   for ( j in 2:dim(X)[2] ){
     Xk.j <- do.call(
       get.forestSCIP.forColumn,
       c(
-        list( X = X, column = j, method = method, Xk = Xk),
+        list(
+          X = X,
+          column = j,
+          method = method,
+          Xk = Xk[,1:(j-1)]
+        ),
         vargs
       )
     )
-
-    Xk <- cbind( Xk, Xk.j )
+    Xk[[ j ]] <- Xk.j
   }
 
-
   colnames( Xk ) <- paste( colnames( X ), "~", sep = "" )
+
 
   return( Xk )
 }
@@ -341,7 +345,6 @@ get.forestSCIP.forColumn <- function(
   stopifnot( dim(Xk)[1] == n )
 
   method <- match.arg( method, c("normal","permute") )
-
   if ( column == 1 ){
     # No Xk at all
     X.all <- X[,-column]
@@ -381,6 +384,7 @@ get.forestSCIP.forColumn <- function(
     Xk.j <- forest$predictions + residuals.Xk.j
   }
   else if ( inherits(X[[ column ]], "factor" ) ){
+    #print("# factor")
     forest <- ranger::ranger(
       x = X.all,
       y = X[[ column ]],
@@ -388,10 +392,18 @@ get.forestSCIP.forColumn <- function(
       ...
     )
 
+    predictions <- forest$predictions
+
+    stopifnot( all(
+      dim(predictions) == c( dim(X)[1], length( levels(X[[column]]) ) )
+    ) )
+
     Xk.j <- as.factor(
-      choose.categories( forest$predictions )
+      choose.categories(
+        X = predictions,
+        levels = levels( X[[ column ]] )
+      )
     )
-    levels( Xk.j ) <- levels( X[[ column ]] )
   }
   else {
     stop(
@@ -414,7 +426,10 @@ get.forestSCIP.forColumn <- function(
 #'
 #' @keywords internal
 #' @noRd
-choose.categories <- function( X ){
+choose.categories <- function(
+    X,
+    levels
+  ){
   # For a matrix X, choose from the number of columns with the rowwise
   #   probabilities. One chosen for each row as a column integer.
   # HINT: use the column integer to choose the appropriate factor level
@@ -424,7 +439,7 @@ choose.categories <- function( X ){
   choices <- unlist(
     lapply(
       1:dim(X)[1],
-      function(x) sample( k, size = 1, prob = X[x,] )
+      function(x) levels[ sample( k, size = 1, prob = X[x,] ) ]
     )
   )
 
