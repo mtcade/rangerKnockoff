@@ -5,7 +5,6 @@ abs.local_grad <- function(
   exponent, # power of the local grads
   j # int, column
 ){ # -> vector[ float], length = dim(X)[1]
-  # TODO: kill print statements
 
   if ( inherits( X[[j]], "factor") ){
     # Categorical

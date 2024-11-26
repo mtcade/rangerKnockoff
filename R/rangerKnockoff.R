@@ -428,20 +428,31 @@ get.forestSCIP.forColumn <- function(
 #' @noRd
 choose.categories <- function(
     X,
-    levels
+    levels = NULL
   ){
   # For a matrix X, choose from the number of columns with the rowwise
   #   probabilities. One chosen for each row as a column integer.
+  # If `levels` are provided then we get them. Otherwise, we get the column integer
   # HINT: use the column integer to choose the appropriate factor level
   k <- dim( X )[2]
   choices <- rep( 0, times = dim(X)[1] )
 
-  choices <- unlist(
-    lapply(
-      1:dim(X)[1],
-      function(x) levels[ sample( k, size = 1, prob = X[x,] ) ]
+  if ( is.null( levels ) ){
+    choices <- unlist(
+      lapply(
+        1:dim(X)[1],
+        function(x) sample( k, size = 1, prob = X[x,] )
+      )
     )
-  )
+  }
+  else {
+    choices <- unlist(
+      lapply(
+        1:dim(X)[1],
+        function(x) levels[ sample( k, size = 1, prob = X[x,] ) ]
+      )
+    )
+  }
 
   return( choices )
 }
