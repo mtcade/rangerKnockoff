@@ -384,7 +384,6 @@ get.forestSCIP.forColumn <- function(
     Xk.j <- forest$predictions + residuals.Xk.j
   }
   else if ( inherits(X[[ column ]], "factor" ) ){
-    #print("# factor")
     forest <- ranger::ranger(
       x = X.all,
       y = X[[ column ]],

@@ -1,63 +1,70 @@
-abs.local_grad <- function(
-  forest,
-  X, # Table of data
-  bandwidth, # float; literal bandwidth for column `j`
-  exponent, # power of the local grads
-  j # int, column
+local_grad.for_col <- function(
+    j, # int, column
+    forest,
+    dframe, # Table of data
+    bandwidths, # vector[ float ]; literal bandwidth for column `j`
+    base.predictions, # vector[ float ] prediction from base forest without perturbing data
+    verbose = 0
 ){ # -> vector[ float], length = dim(X)[1]
+  if ( verbose > 0 & j %% 20 == 0 ){
+    print(paste("# Taking local_grad.for_col", j, "of", dim(dframe)[2] ))
+  }
 
-  if ( inherits( X[[j]], "factor") ){
+  if ( length( bandwidths ) == 1 ){
+    bandwidth <- bandwidths
+  } else {
+    bandwidth <- bandwidths[ j ]
+  }
+  if ( inherits( dframe[[j]], "factor") ){
     # Categorical
-    X.j.levels <- levels( X[[j]] )
+    X.j.levels <- levels( dframe[[j]] )
     levels.count <- length( X.j.levels )
 
-    X.j.predictions <- matrix( data = 0, nrow = dim(X)[1], ncol = levels.count )
+    X.j.predictions <- matrix( data = 0, nrow = dim(dframe)[1], ncol = levels.count )
     for ( k in 1:levels.count ){
-      X.test <- X
+      X.test <- dframe
       X.test[[j]] <- X.j.levels[[k]]
       X.j.predictions[,k] <- predict( forest, X.test )$predictions
     }
-    X.j.predictions.mins <- rep( 0, times = dim(X)[1] )
-    X.j.predictions.maxs <- rep( 0, times = dim(X)[1] )
-    for ( i in 1:dim(X)[1] ){
+    X.j.predictions.mins <- rep( 0, times = dim(dframe)[1] )
+    X.j.predictions.maxs <- rep( 0, times = dim(dframe)[1] )
+    for ( i in 1:dim(dframe)[1] ){
       X.j.predictions.mins[i] <- min( X.j.predictions[i,] )
       X.j.predictions.maxs[i] <- max( X.j.predictions[i,] )
     }
     local_grads <- X.j.predictions.maxs - X.j.predictions.mins
   } else {
     # Numeric
-    X.test <- X
-    X.test[[j]] <- X[[j]] + bandwidth*0.5
+    X.test <- dframe
 
-    local_grads <- predict( forest, data = X.test )$predictions
+    # Choose randomly whether to go plus or minus bandwidth
+    bandwidth.factor <- bandwidth * sample( c(-1,1), 1 )
+    X.test[[j]] <- dframe[[j]] + bandwidth.factor
 
-    X.test[[j]] <- X[[j]] - bandwidth*0.5
-
-    local_grads <- local_grads - predict( forest, data = X.test )$predictions
-
-    local_grads <- abs(local_grads) / bandwidth
+    local_grads <- predict( forest, data = X.test )$predictions - base.predictions
+    local_grads <- local_grads / bandwidth.factor
   }
 
-  return( local_grads**exponent )
+  return( local_grads )
 }
 
 stat.forest.local_grad.extras <- function(
-  X,
-  X_k,
-  y,
-  bandwidth = 1,
-  bandwidth.exponent = 0.2,
-  exponent = 2,
-  get.error = TRUE,
-  get.oob_score = TRUE,
-  ...
+    X,
+    X_k,
+    y,
+    bandwidth = 1,
+    bandwidth.exponent = 0.2,
+    exponent = 2,
+    in.parallel = FALSE,
+    get.error = TRUE,
+    get.oob_score = TRUE,
+    verbose = 0,
+    ...
 ){ # -> list("W","error","oob_score")
-  stopifnot(
-    all(
-      dim(X_k) == dim(X)
-    )
-  )
-  p <- dim(X)[2]
+  # Row count must be equal
+  stopifnot( all( dim(X) == dim(X_k) ) )
+
+  # Get the matrix of gradients at each sample point
   # n factor for bandwidth; bandwidths[[ j ]] = sd(X[[j]])*bandwidth/n**n.factor
   n.factor <- dim(X)[1]**(bandwidth.exponent)
 
@@ -65,17 +72,9 @@ stat.forest.local_grad.extras <- function(
   if ( !( "respect.unordered.factors" %in% names(vargs) ) ){
     vargs[[ "respect.unordered.factors" ]] <- "partition"
   }
-  vargs[[ "oob.error" ]] <- get.oob_score
 
   X_all <- cbind( X, X_k )
-
-  # Calculate termwise bandwidths
-  bandwidths <- rep( 0, times = 2*p )
-  for ( j in 1:(2*p ) ){
-    if ( inherits( X_all[[ j ]], "numeric" )  ){
-      bandwidths[ j ] <- sd( X_all[[ j ]] )*bandwidth/n.factor
-    }
-  }
+  p_all <- dim(X_all)[2]
 
   forest <- do.call(
     ranger::ranger,
@@ -87,25 +86,67 @@ stat.forest.local_grad.extras <- function(
       vargs
     )
   )
-  matrix.local_grad <- do.call(
-    cbind,
-    lapply(
-      1:(2*p),
-      function( x ) abs.local_grad(
-        forest = forest,
-        X = X_all,
-        bandwidth = bandwidths[ x ],
-        exponent = exponent,
-        j = x
-      )
+  base.predictions <- predict( forest, data = X_all )$predictions
+  # Get the matrix of local grads
+
+  # Calculate termwise bandwidths
+  bandwidths <- rep( 0, times = p_all )
+  for ( j in 1:p_all ){
+    if ( inherits( X_all[[ j ]], "numeric" )  ){
+      bandwidths[ j ] <- sd( X_all[[ j ]] )*bandwidth/n.factor
+    }
+  }
+
+  if ( in.parallel ){
+    library( parallel )
+    no_cores <- detectCores()
+    if ( verbose > 0 ){
+      print(paste("# Running parallel with", no_cores, "cores"))
+    }
+    # Creating a cluster with the number of cores
+    clust <- makeCluster(no_cores)
+
+    local_grads.list <- parLapply(
+      clust,
+      1:p_all,
+      fun = local_grad.for_col,
+      forest = forest,
+      dframe = X_all,
+      bandwidths = bandwidths,
+      base.predictions = base.predictions,
+      verbose = verbose
     )
+    print("parallel local_grads.list:")
+    print( local_grads.list )
+  } else {
+    local_grads.list <- lapply(
+      X = 1:p_all,
+      FUN = local_grad.for_col,
+      forest = forest,
+      dframe = X_all,
+      bandwidths = bandwidths,
+      base.predictions = base.predictions,
+      verbose = verbose
+    )
+  }
+
+  local_grads.matrix <- do.call(
+    cbind,
+    local_grads.list
   )
 
-  importances <- colMeans( matrix.local_grad )
+  if ( in.parallel ){
+    print("# local_grads.matrix:")
+    print( local_grads.matrix )
+  }
 
-  # Pack results
+  # Transform to importances with abs and exponent
+  importances <- colMeans( abs( local_grads.matrix )**exponent )
+
+  # Calculate W from importances using differences, and pack results
+  p_half <- p_all %/% 2
   results <- list(
-    W = importances[1:p] - importances[(p+1):(2*p)]
+    W = importances[1:p_half] - importances[(p_half+1):(p_all)]
   )
   if ( get.error ){
     results[[ "error" ]] <- var( predict( forest, X_all)$predictions - y )
@@ -143,24 +184,28 @@ stat.forest.local_grad.extras <- function(
 #' @export
 
 stat.forest.local_grad <- function(
-  X,
-  X_k,
-  y,
-  bandwidth = 1,
-  bandwidth.exponent = 0.2,
-  exponent = 2,
-  ...
+    X,
+    X_k,
+    y,
+    bandwidth = 1,
+    bandwidth.exponent = 0.2,
+    exponent = 2,
+    in.parallel = FALSE,
+    verbose = 0,
+    ...
 ){
   return(
     stat.forest.local_grad.extras(
-      X = Xk,
+      X = X,
       X_k = X_k,
       y = y,
       bandwidth = bandwidth,
       bandwidth.exponent = bandwidth.exponent,
       exponent = exponent,
+      in.parallel = in.parallel,
       get.error = FALSE,
       get.oob_score = FALSE,
+      verbose = verbose,
       ...
     )[[ "W" ]]
   )
