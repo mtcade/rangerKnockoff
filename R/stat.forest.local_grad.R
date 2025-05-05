@@ -39,6 +39,7 @@ local_grad.for_col <- function(
 
     # Choose randomly whether to go plus or minus bandwidth
     bandwidth.factor <- bandwidth * sample( c(-1,1), 1 )
+
     X.test[[j]] <- dframe[[j]] + bandwidth.factor
 
     local_grads <- predict( forest, data = X.test )$predictions - base.predictions

@@ -195,6 +195,7 @@ create.forest.conditional_residuals <- function(
         # Convert chosen indices into the levels from X for categories
         Xk[[j]] <- levels( X[[j]] )[ forestRandomCategories[[ .categoryIterator ]] ]
         .categoryIterator <- .categoryIterator + 1
+        Xk[[j]] <- as.factor( Xk[[j]] )
       } else {
         # Use conditional residual knockoffs for numerics
         Xk[[j]] <- conditionalExpectationsNumeric[,.numericIterator] + conditionalResidualKnockoffs[,.numericIterator]
